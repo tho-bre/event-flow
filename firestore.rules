@@ -1,0 +1,52 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Fonction pour vérifier si l'utilisateur est connecté
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Fonction pour vérifier si l'utilisateur est actif
+    function isActiveUser() {
+      let userDoc = get(/databases/$(database)/documents/associations/$(request.auth.uid));
+      return userDoc.data.is_active == true;
+    }
+
+    // Fonction pour vérifier si l'événement appartient à l'association
+    function ownsEvent(eventData) {
+      return eventData.associationEmail == request.auth.token.email;
+    }
+
+    // Règles pour la collection associations
+    match /associations/{userId} {
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow create: if isAuthenticated() 
+                   && request.resource.data.email == request.auth.token.email
+                   && request.resource.data.is_active == false;
+      allow update: if false; // Seul l'admin peut modifier via Console
+      allow delete: if false;
+    }
+
+    // Règles pour la collection events
+    match /events/{eventId} {
+      allow read: if isAuthenticated() 
+                 && isActiveUser()
+                 && ownsEvent(resource.data);
+      
+      allow create: if isAuthenticated() 
+                   && isActiveUser()
+                   && ownsEvent(request.resource.data)
+                   && request.resource.data.totalEntries == 0
+                   && request.resource.data.entries.size() == 0;
+      
+      allow update: if isAuthenticated() 
+                   && isActiveUser()
+                   && ownsEvent(resource.data)
+                   && ownsEvent(request.resource.data);
+      
+      allow delete: if isAuthenticated() 
+                   && isActiveUser()
+                   && ownsEvent(resource.data);
+    }
+  }
+}
