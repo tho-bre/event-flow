@@ -3,6 +3,10 @@ import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getAnalytics } from 'firebase/analytics';
 
+if (!import.meta.env.VITE_FIREBASE_API_KEY) {
+  throw new Error('Firebase API Key is missing. Check your environment variables.');
+}
+
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -12,6 +16,12 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
+
+console.log('Firebase config loaded:', {
+  apiKeyExists: !!firebaseConfig.apiKey,
+  authDomainExists: !!firebaseConfig.authDomain,
+  projectIdExists: !!firebaseConfig.projectId
+});
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
